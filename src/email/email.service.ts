@@ -1,17 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { createTransport, Transporter } from 'nodemailer';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class EmailService {
   transporter: Transporter;
 
-  constructor() {
+  constructor(private readonly configService: ConfigService) {
     this.transporter = createTransport({
       service: 'qq',
       secure: true,
       auth: {
-        user: '1048444579@qq.com',
-        pass: '',
+        user: configService.get('nodemailer_auth_user'),
+        pass: configService.get('nodemailer_auth_pass'),
       },
     });
   }
@@ -28,7 +29,7 @@ export class EmailService {
     await this.transporter.sendMail({
       from: {
         name: '会议室预定系统',
-        address: '1048444579@qq.com',
+        address: this.configService.get('nodemailer_auth_user'),
       },
       to,
       subject,
