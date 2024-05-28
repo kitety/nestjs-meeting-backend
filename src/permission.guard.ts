@@ -17,19 +17,19 @@ export class PermissionGuard implements CanActivate {
   canActivate(
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
-    const request: Request = context.switchToHttp().getRequest();
-    // 强制登陆了才会有user对象 @SetMetadata('require-login', true)
-    if (!request.user) return true;
-
-    const permissions = request.user.permissions;
     const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
       'require-permission',
       [context.getClass(), context.getHandler()],
     );
+    // 没设置权限，可以访问
     if (!requiredPermissions) {
       return true;
     }
-
+    // 设置了权限，必须登陆
+    const request: Request = context.switchToHttp().getRequest();
+    // 强制登陆了才会有user对象 @SetMetadata('require-login', true)
+    if (!request.user) return false;
+    const permissions = request.user.permissions;
     const hasPermission = requiredPermissions.every((permission) =>
       permissions.some((userPermission) => userPermission.code === permission),
     );
