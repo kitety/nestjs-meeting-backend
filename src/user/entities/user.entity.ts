@@ -47,37 +47,43 @@ export class User {
     comment: '头像',
     length: 100,
     nullable: true,
+    name:'head_pic'
   })
-  head_pic: string;
+  headPic: string;
 
   @Column({
     comment: '手机号',
     length: 20,
     nullable: true,
+    name: 'phone_number',
   })
-  phone_number: string;
+  phoneNumber: string;
 
   @Column({
     comment: '是否被冻结',
     default: false,
+    name: 'is_frozen',
   })
-  is_frozen: boolean;
+  isFrozen: boolean;
 
   @Column({
     comment: '是否是管理员',
     default: false,
+    name: 'is_admin',
   })
-  is_admin: boolean;
+  isAdmin: boolean;
 
   @CreateDateColumn({
     comment: '创建时间',
+    name:'create_time'
   })
-  create_time: Date;
+  createTime: Date;
 
   @UpdateDateColumn({
     comment: '更新时间',
+    name:'update_time'
   })
-  update_time: Date;
+  updateTime: Date;
 
   @ManyToMany(() => Role)
   @JoinTable({
