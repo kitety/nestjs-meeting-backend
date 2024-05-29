@@ -57,6 +57,7 @@ import { PermissionGuard } from './permission.guard';
   controllers: [AppController],
   providers: [
     AppService,
+    // 注意这里的顺序，先注册 LoginGuard，再注册 PermissionGuard
     {
       provide: APP_GUARD,
       useClass: LoginGuard,

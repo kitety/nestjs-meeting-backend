@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Get,
   Inject,
   Post,
@@ -15,6 +16,11 @@ import { LoginUserDto } from './dto/login-user.dto';
 import { LoginUserVo } from './vo/login-user.vo';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { RequireLogin, UserInfo } from '../custom.decorator';
+import { UserDetailVo } from './vo/user-info.vo';
+import { UpdateUserPasswordDto } from './dto/update-user-password.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { generateParseIntPipe } from '../utils';
 
 @Controller('user')
 export class UserController {
@@ -161,7 +167,7 @@ export class UserController {
   async refresh(@Query('refreshToken') refreshToken: string) {
     try {
       const data = this.jwtService.verify(refreshToken);
-      const user = await this.userService.findUserById(data.userId, false);
+      const user = await this.userService.findUserById(data.userId);
       const access_token = this.jwtService.sign(
         {
           userId: user.id,
@@ -197,7 +203,7 @@ export class UserController {
   async adminRefresh(@Query('refreshToken') refreshToken: string) {
     try {
       const data = this.jwtService.verify(refreshToken);
-      const user = await this.userService.findUserById(data.userId, true);
+      const user = await this.userService.findUserById(data.userId);
       const access_token = this.jwtService.sign(
         {
           userId: user.id,
@@ -227,5 +233,86 @@ export class UserController {
     } catch (e) {
       throw new UnauthorizedException('token 已失效，请重新登录');
     }
+  }
+
+  @Get('info')
+  @RequireLogin()
+  async info(@UserInfo('userId') userId: number) {
+    const user = await this.userService.findUserDetailById(userId);
+    const vo = new UserDetailVo();
+    vo.id = user.id;
+    vo.email = user.email;
+    vo.username = user.username;
+    vo.headPic = user.headPic;
+    vo.phoneNumber = user.phoneNumber;
+    vo.nickName = user.nickName;
+    vo.createTime = user.createTime;
+    vo.isFrozen = user.isFrozen;
+
+    return vo;
+  }
+
+  @Post(['update_password', 'admin/update_password'])
+  @RequireLogin()
+  async updatePassword(
+    @UserInfo('userId') userId: number,
+    @Body() updateUserPasswordDto: UpdateUserPasswordDto,
+  ) {
+    console.log(updateUserPasswordDto);
+    return this.userService.updatePassword(userId, updateUserPasswordDto);
+  }
+
+  @Get('update_password_captcha')
+  @RequireLogin()
+  async updatePasswordCaptcha(@UserInfo('userId') userId: number) {
+    const user = await this.userService.findUserById(userId);
+    const address = user.email;
+    const code = Math.random().toString().slice(2, 8);
+    await this.redisService.set(`captcha_${address}`, code);
+    await this.emailService.sendMail({
+      to: address,
+      subject: '会议室预定系统注册验证码',
+      html: `<p>你的验证码是 ${code}</p>`,
+    });
+    return '验证码发送成功';
+  }
+
+  @Post(['update', 'admin/update'])
+  @RequireLogin()
+  async update(
+    @UserInfo('userId') userId: number,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    return await this.userService.update(userId, updateUserDto);
+  }
+
+  @Get('freeze')
+  @RequireLogin()
+  async freeze(@Query('id') userId: number) {
+    await this.userService.freezeUserById(userId);
+    return 'success';
+  }
+
+  @Get('list')
+  async list(
+    @Query('pageNo', new DefaultValuePipe(1), generateParseIntPipe('pageNo'))
+    pageNo: number,
+    @Query(
+      'pageSize',
+      new DefaultValuePipe(10),
+      generateParseIntPipe('pageSize'),
+    )
+    pageSize: number,
+    @Query('username') username: string,
+    @Query('nickName') nickName: string,
+    @Query('email') email: string,
+  ) {
+    return await this.userService.findUsersByPage(
+      username,
+      nickName,
+      email,
+      pageNo,
+      pageSize,
+    );
   }
 }
