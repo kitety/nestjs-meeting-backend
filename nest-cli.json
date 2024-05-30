@@ -7,6 +7,14 @@
     "watchAssets": true,
     "assets": [
       "**/*.env"
+    ],
+    "plugins": [
+      {
+        "name": "@nestjs/swagger",
+        "options": {
+          "introspectComments": true
+        }
+      }
     ]
   },
   "generateOptions": {
